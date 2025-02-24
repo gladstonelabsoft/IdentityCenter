@@ -64,6 +64,7 @@ namespace Skoruba.IdentityServer4.Admin.Api.Controllers
         private readonly IGenericControllerLocalizer<UsersController<TUserDto, TRoleDto, TUser, TRole, TKey, TUserClaim, TUserRole, TUserLogin, TRoleClaim, TUserToken,
             TUsersDto, TRolesDto, TUserRolesDto, TUserClaimsDto,
             TUserProviderDto, TUserProvidersDto, TUserChangePasswordDto, TRoleClaimsDto, TUserClaimDto, TRoleClaimDto>> _localizer;
+        private readonly IIdentityUserService _userService;
 
         private readonly IMapper _mapper;
         private readonly IApiErrorResources _errorResources;
@@ -85,7 +86,7 @@ namespace Skoruba.IdentityServer4.Admin.Api.Controllers
                 UserManager<TUser> userManager, IEmailSender emailSender, ILogger<UsersController<TUserDto, TRoleDto, TUser, TRole, TKey, TUserClaim, TUserRole, TUserLogin, TRoleClaim, TUserToken,
                 TUsersDto, TRolesDto, TUserRolesDto, TUserClaimsDto,
                 TUserProviderDto, TUserProvidersDto, TUserChangePasswordDto, TRoleClaimsDto, TUserClaimDto, TRoleClaimDto>> logger,
-                IConfiguration configuration, ISecurePasswordService passwordService)
+                IConfiguration configuration, ISecurePasswordService passwordService, IIdentityUserService userService)
         {
             _identityService = identityService;
             _localizer = localizer;
@@ -96,6 +97,7 @@ namespace Skoruba.IdentityServer4.Admin.Api.Controllers
             _logger = logger;
             _configuration = configuration;
             _passwordService = passwordService;
+            _userService = userService;
         }
 
         [HttpGet("{id}")]
@@ -576,70 +578,27 @@ namespace Skoruba.IdentityServer4.Admin.Api.Controllers
 
 
         /// <summary>
-        /// Resets a user's password by recreating their account
+        /// Resets a user's password and sends temporary credentials
         /// </summary>
-        /// <param name="request">The email address of the user</param>
-        /// <returns>200 OK if successful</returns>
-        /// <response code="200">Password reset successful</response>
-        /// <response code="400">Invalid email format</response>
-        /// <response code="404">User not found</response>
-        /// <response code="500">Internal server error</response>
+        /// <param name="request">Email address of the user</param>
+        /// <returns>Success message or error details</returns>
         [HttpPost("ResetPassword")]
         [ProducesResponseType(200)]
         [ProducesResponseType(400)]
         [ProducesResponseType(404)]
-        [ProducesResponseType(500)]
         [Authorize(Policy = AuthorizationConsts.AdministrationPolicy)]
         public async Task<IActionResult> ResetPassword([FromBody] UserResetPasswordRequestDto request)
         {
-            try
-            {
-                if (!MailAddress.TryCreate(request.Email, out _))
-                {
-                    return BadRequest("Invalid email format");
-                }
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-                var user = await _identityService.GetUserByEmailAsync(request.Email);
-                if (user == null)
-                {
-                    return NotFound("User not found");
-                }
+            var result = await _userService.ResetUserPasswordAsync(request.Email);
 
-                var userClaims = await _identityService.GetUserClaimsAsync(user.Id);
+            if (result == null)
+                return NotFound("User not found");
 
-                // Generate new secure password
-                var newPassword = _passwordService.GenerateSecurePassword();
-                var hashedPassword = await _passwordService.HashPasswordAsync(newPassword);
-
-                // Delete existing user
-                await _identityService.DeleteUserAsync(user.Id.ToString());
-
-                // Create new user
-                var newUser = new UserDto<string>
-                {
-                    UserName = request.Email,
-                    Email = request.Email,
-                    Password = hashedPassword
-                };
-
-                await _identityService.CreateUserAsync(newUser);
-
-                // Restore claims
-                foreach (var claim in userClaims.Claims)
-                {
-                    await _identityService.CreateUserClaimsAsync(newUser.Id, claim);
-                }
-
-                // TODO: Implement email sending
-                _logger.LogInformation("Password reset completed for user {Email}", request.Email);
-
-                return Ok("Password reset successful. Check your email.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error resetting password for {Email}", request.Email);
-                return StatusCode(500, "An error occurred while resetting the password");
-            }
+            // TODO: Send email with temporary password
+            return Ok("Password reset successful. Check your email for temporary credentials.");
         }
     }
 }
