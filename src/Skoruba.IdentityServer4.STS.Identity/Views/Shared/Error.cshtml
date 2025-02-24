@@ -1,0 +1,23 @@
+﻿@using Microsoft.AspNetCore.Mvc.Localization
+@inject IViewLocalizer Localizer
+@using Microsoft.AspNetCore.Hosting
+@using Microsoft.Extensions.Hosting
+@model Skoruba.IdentityServer4.STS.Identity.ViewModels.Home.ErrorViewModel
+@inject IWebHostEnvironment Host
+
+@{
+	var error = Model?.Error?.Error;
+	var errorDescription = Host.IsDevelopment() ? Model?.Error?.ErrorDescription : null;
+	var request_id = Model?.Error?.RequestId;
+}
+
+<div class="error-page error-page d-flex justify-content-center align-items-center flex-column p-3 mb-5 bg-white rounded">
+	<div class="row">
+		<div class="col-sm-12">
+			<div class="alert alert-danger shadow">
+				@Localizer["SorryWeWereUnableToPerformTheRequestedAction"]
+			</div>
+
+		</div>
+	</div>
+</div>
