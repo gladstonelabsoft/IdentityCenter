@@ -1,4 +1,4 @@
-﻿using HealthChecks.UI.Client;
+using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
@@ -56,6 +56,7 @@ namespace Skoruba.IdentityServer4.Admin.Api
             services.AddEmailSenders(Configuration);
             services.AddScoped<ControllerExceptionFilterAttribute>();
             services.AddScoped<IApiErrorResources, ApiErrorResources>();
+            services.AddScoped<ISecurePasswordService, SecurePasswordService>();
             services.AddScoped<IHttpRequestService, ClientHttpRequestService>();
             services.AddScoped<IEmailSender, NotificationCenterEmailSender>();
             RegisterAuthentication(services);
