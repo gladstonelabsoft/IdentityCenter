@@ -17,6 +17,20 @@ namespace Skoruba.IdentityServer4.Admin.EntityFramework.Shared.DbContexts
             base.OnModelCreating(builder);
 
             ConfigureIdentityContext(builder);
+
+            // Performance optimizations for EF Core 8.0
+            foreach (var entityType in builder.Model.GetEntityTypes())
+            {
+                // Configure indexes for foreign key properties
+                foreach (var foreignKey in entityType.GetForeignKeys())
+                {
+                    foreach (var property in foreignKey.Properties)
+                    {
+                        builder.Entity(entityType.ClrType)
+                            .HasIndex(property.Name);
+                    }
+                }
+            }
         }
 
         private void ConfigureIdentityContext(ModelBuilder builder)

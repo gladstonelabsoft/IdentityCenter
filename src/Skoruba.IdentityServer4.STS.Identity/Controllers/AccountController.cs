@@ -31,7 +31,6 @@ using Skoruba.IdentityServer4.STS.Identity.Configuration;
 using Skoruba.IdentityServer4.STS.Identity.Controllers.Dtos;
 using Skoruba.IdentityServer4.STS.Identity.Helpers;
 using Skoruba.IdentityServer4.STS.Identity.Helpers.Localization;
-using Skoruba.IdentityServer4.STS.Identity.Services.Captcha;
 using Skoruba.IdentityServer4.STS.Identity.ViewModels.Account;
 using System;
 using System.Collections.Generic;
@@ -70,7 +69,6 @@ namespace Skoruba.IdentityServer4.STS.Identity.Controllers
         private readonly IExternalSystemLoginService _myLIMSwebLoginService;
         private readonly IRequestTokenService _requestTokenService;
         private readonly IConfiguration _configuration;
-        private readonly ICaptchaService _captchaService;
         private const string companyClaimType = "company";
         private const string GrantType = "client_credentials";
 
@@ -93,8 +91,7 @@ namespace Skoruba.IdentityServer4.STS.Identity.Controllers
             IHttpRequestService httpRequestService,
             IExternalSystemLoginService myLIMSwebLoginService,
             IRequestTokenService requestTokenService,
-            IConfiguration configuration,
-            ICaptchaService captchaService)
+            IConfiguration configuration)
         {
             _userResolver = userResolver;
             _userManager = userManager;
@@ -115,7 +112,6 @@ namespace Skoruba.IdentityServer4.STS.Identity.Controllers
             _myLIMSwebLoginService = myLIMSwebLoginService;
             _requestTokenService = requestTokenService;
             _configuration = configuration;
-            _captchaService = captchaService;
         }
 
         /// <summary>
@@ -179,15 +175,6 @@ namespace Skoruba.IdentityServer4.STS.Identity.Controllers
 
             if (ModelState.IsValid)
             {
-                var (captchaResponse, captchaErrorMessage) = await _captchaService.Validate(model.GRecaptchaResponse);
-                if (!captchaResponse)
-                {
-                    var captchaProvider = _configuration["CaptchaConfiguration:Provider"];
-                    _logger.LogError("Unable to validate captcha ({0}): {1}", captchaProvider, captchaErrorMessage);
-                    ModelState.AddModelError(string.Empty, _localizer["InvalidCaptcha"]);
-                    return await ShowError(model);
-                }
-
                 var user = await _userResolver.GetUserAsync(model.Username);
                 if (user != default(TUser))
                 {
@@ -266,7 +253,7 @@ namespace Skoruba.IdentityServer4.STS.Identity.Controllers
                 }
 
                 await _events.RaiseAsync(new UserLoginFailureEvent(model.Username, "invalid credentials", clientId: context?.Client.ClientId));
-                ModelState.AddModelError(string.Empty, _localizer["IncorrectUsernameOrPassword"]);
+                ModelState.AddModelError(string.Empty, _localizer["Invalid username or password"]);
             }
 
             return await ShowError(model);
@@ -276,6 +263,16 @@ namespace Skoruba.IdentityServer4.STS.Identity.Controllers
         {
             // something went wrong, show form with error
             var vm = await BuildLoginViewModelAsync(model);
+            
+            // Ensure validation errors are preserved in .NET 8
+            if (ModelState.ErrorCount > 0)
+            {
+                vm.ValidationSummary = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+            }
+            
             return View(vm);
         }
 

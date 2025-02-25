@@ -7,6 +7,5 @@ namespace Skoruba.IdentityServer4.STS.Identity.Configuration
     {      
         public AdminConfiguration AdminConfiguration { get; } = new AdminConfiguration();
         public RegisterConfiguration RegisterConfiguration { get; } = new RegisterConfiguration();
-        public CaptchaConfiguration CaptchaConfiguration { get; } = new CaptchaConfiguration();
     }
 }

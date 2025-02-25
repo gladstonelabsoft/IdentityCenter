@@ -21,6 +21,7 @@ namespace Skoruba.IdentityServer4.Admin.UnitTests.Repositories
 
             _dbContextOptions = new DbContextOptionsBuilder<IdentityServerConfigurationDbContext>()
                 .UseInMemoryDatabase(databaseName)
+                .EnableSensitiveDataLogging()
                 .Options;
 
             _storeOptions = new ConfigurationStoreOptions();

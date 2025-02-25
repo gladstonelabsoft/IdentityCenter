@@ -265,10 +265,6 @@ To maintain your CSS standard, use the rules exemplified below!
     color: #fff;
     text-decoration: none !important;
 }
-  .labsoft-login-button-primary:disabled {
-    background-color: #a1b5f6;
-    cursor: not-allowed;
-  }
 .labsoft-login-button-secondary{
     width: 50%;
     padding: 9px;

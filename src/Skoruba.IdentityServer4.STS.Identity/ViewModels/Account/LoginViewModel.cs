@@ -22,5 +22,6 @@ namespace Skoruba.IdentityServer4.STS.Identity.ViewModels.Account
         public string ExternalLoginScheme => IsExternalLoginOnly ? ExternalProviders?.SingleOrDefault()?.AuthenticationScheme : null;
         public string RequesterClient { get; set; } = string.Empty;
         public string LabsoftExternalProvider { get; set; } = string.Empty;
+        public List<string> ValidationSummary { get; set; } = new List<string>();
     }
 }

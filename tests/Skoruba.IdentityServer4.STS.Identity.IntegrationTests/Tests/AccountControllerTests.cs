@@ -161,16 +161,19 @@ namespace Skoruba.IdentityServer4.STS.Identity.IntegrationTests.Tests
 
             // Get error messages from validation summary
             var errorNodes = doc.DocumentNode
-                .SelectNodes("//div[contains(@class, 'alert-danger')]");
+                .SelectNodes("//div[contains(@class, 'validation-summary-errors')]/ul/li");
 
             errorNodes.Should().HaveCount(1);
 
             // Build expected error messages
-            var expectedErrorMessages = "Invalid username or password";
+            var expectedErrorMessages = new List<string>
+            {
+                "Invalid username or password"
+            };
 
             // Assert
-            var containErrors = errorNodes.Select(x => x.InnerText.Contains(expectedErrorMessages)).Any();
-            
+            var containErrors = errorNodes.Select(x => x.InnerText).ToList().SequenceEqual(expectedErrorMessages);
+
             containErrors.Should().BeTrue();
 
             // Check if response contain cookie with Identity

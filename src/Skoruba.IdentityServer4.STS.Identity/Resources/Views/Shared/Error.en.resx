@@ -123,9 +123,6 @@
   <data name="Request" xml:space="preserve">
     <value>Request Id:</value>
   </data>
-  <data name="SorryWeWereUnableToPerformTheRequestedAction" xml:space="preserve">
-    <value>Sorry, we were unable to perform the requested action</value>
-  </data>
   <data name="Title" xml:space="preserve">
     <value>Error</value>
   </data>

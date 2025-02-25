@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -17,10 +16,7 @@ using Skoruba.IdentityServer4.Admin.Api.Mappers;
 using Skoruba.IdentityServer4.Admin.Api.Resources;
 using Skoruba.IdentityServer4.Admin.EntityFramework.Shared.DbContexts;
 using Skoruba.IdentityServer4.Admin.EntityFramework.Shared.Entities.Identity;
-using Skoruba.IdentityServer4.Shared.Configuration.Email;
 using Skoruba.IdentityServer4.Shared.Configuration.Helpers;
-using Skoruba.IdentityServer4.Shared.Configuration.Services;
-using Skoruba.IdentityServer4.Shared.Configuration.Services.Interfaces;
 using Skoruba.IdentityServer4.Shared.Dtos;
 using Skoruba.IdentityServer4.Shared.Dtos.Identity;
 using System;
@@ -45,9 +41,9 @@ namespace Skoruba.IdentityServer4.Admin.Api
         public void ConfigureServices(IServiceCollection services)
         {
             var environment = Configuration["AspNet_Environment"] ?? string.Empty;
-            LogConfiguration.AddSerilogLabsoftApplicationLog(services,
-                configuration: Configuration,
-                environment: environment);
+            //LogConfiguration.AddSerilogLabsoftApplicationLog(services,
+            //    configuration: Configuration,
+            //    environment: environment);
 
             var adminApiConfiguration = Configuration.GetSection(nameof(AdminApiConfiguration)).Get<AdminApiConfiguration>();
             services.AddSingleton(adminApiConfiguration);
@@ -56,8 +52,6 @@ namespace Skoruba.IdentityServer4.Admin.Api
             services.AddEmailSenders(Configuration);
             services.AddScoped<ControllerExceptionFilterAttribute>();
             services.AddScoped<IApiErrorResources, ApiErrorResources>();
-            services.AddScoped<IHttpRequestService, ClientHttpRequestService>();
-            services.AddScoped<IEmailSender, NotificationCenterEmailSender>();
             RegisterAuthentication(services);
             RegisterAuthorization(services);
 

@@ -17,7 +17,7 @@ namespace Skoruba.IdentityServer4.Admin.BusinessLogic.Mappers
         {
             // entity to model
             CreateMap<ApiScope, ApiScopeDto>(MemberList.Destination)
-                .ForMember(x => x.UserClaims, opt => opt.MapFrom(src => src.UserClaims.Select(x => x.Type)));
+                .ForMember(x => x.UserClaims, opt => opt.MapFrom(src => src.UserClaims.Select(x => x.Type).ToList()));
             
             CreateMap<ApiScopeProperty, ApiScopePropertyDto>(MemberList.Destination)
                 .ReverseMap();

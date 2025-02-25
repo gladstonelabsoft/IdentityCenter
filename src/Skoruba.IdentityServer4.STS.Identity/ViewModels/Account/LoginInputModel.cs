@@ -4,7 +4,6 @@
 // Original file: https://github.com/IdentityServer/IdentityServer4.Quickstart.UI
 // Modified by Jan Škoruba
 
-using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
 namespace Skoruba.IdentityServer4.STS.Identity.ViewModels.Account
@@ -17,8 +16,5 @@ namespace Skoruba.IdentityServer4.STS.Identity.ViewModels.Account
         public string Password { get; set; }
         public bool RememberLogin { get; set; }
         public string ReturnUrl { get; set; }
-
-        [BindProperty(Name = "g-recaptcha-response")]
-        public string GRecaptchaResponse { get; set; }   
-}
+    }
 }

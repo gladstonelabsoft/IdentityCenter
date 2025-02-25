@@ -1,12 +1,14 @@
-﻿using Azure.Identity;
+﻿using System;
+using Azure.Identity;
+using Labsoft.Notification.Center.Contracts;
+using MassTransit;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.UI.Services;
-using Microsoft.Azure.KeyVault;
-using Microsoft.Azure.Services.AppAuthentication;
+using Azure.Core;
+using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.AzureKeyVault;
 using Microsoft.Extensions.DependencyInjection;
 using SendGrid;
 using Skoruba.IdentityServer4.Shared.Configuration.Configuration.Common;
@@ -14,7 +16,6 @@ using Skoruba.IdentityServer4.Shared.Configuration.Configuration.Email;
 using Skoruba.IdentityServer4.Shared.Configuration.Email;
 using Skoruba.IdentityServer4.Shared.Configuration.Services;
 using Skoruba.IdentityServer4.Shared.Configuration.Services.Interfaces;
-using System;
 
 namespace Skoruba.IdentityServer4.Shared.Configuration.Helpers
 {
@@ -46,6 +47,7 @@ namespace Skoruba.IdentityServer4.Shared.Configuration.Helpers
             {
                 services.AddSingleton(notificationCenterConfiguration);
                 services.AddTransient<IEmailSender, NotificationCenterEmailSender>();
+                services.AddScoped<IQueueService, AzureServiceBusQueueService>();
             }
             else
             {
@@ -93,20 +95,17 @@ namespace Skoruba.IdentityServer4.Shared.Configuration.Helpers
 
                 if (azureKeyVaultConfiguration.ReadConfigurationFromKeyVault)
                 {
-                    if (azureKeyVaultConfiguration.UseClientCredentials)
-                    {
-                        configurationBuilder.AddAzureKeyVault(azureKeyVaultConfiguration.AzureKeyVaultEndpoint,
-                            azureKeyVaultConfiguration.ClientId, azureKeyVaultConfiguration.ClientSecret);
-                    }
-                    else
-                    {
-                        var keyVaultClient = new KeyVaultClient(
-                            new KeyVaultClient.AuthenticationCallback(new AzureServiceTokenProvider()
-                                .KeyVaultTokenCallback));
+                    TokenCredential credential = azureKeyVaultConfiguration.UseClientCredentials
+                        ? new ClientSecretCredential(
+                            azureKeyVaultConfiguration.TenantId,
+                            azureKeyVaultConfiguration.ClientId,
+                            azureKeyVaultConfiguration.ClientSecret)
+                        : new DefaultAzureCredential();
 
-                        configurationBuilder.AddAzureKeyVault(azureKeyVaultConfiguration.AzureKeyVaultEndpoint,
-                            keyVaultClient, new DefaultKeyVaultSecretManager());
-                    }
+                    configurationBuilder.AddAzureKeyVault(
+                        new Uri(azureKeyVaultConfiguration.AzureKeyVaultEndpoint),
+                        credential,
+                        new AzureKeyVaultConfigurationOptions());
                 }
             }
         }

@@ -1,4 +1,9 @@
-﻿using IdentityServer4;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using IdentityServer4;
+using AuthenticationOptions = IdentityServer4.Configuration.AuthenticationOptions;
 using IdentityServer4.Configuration;
 using IdentityServer4.EntityFramework.Storage;
 using Microsoft.AspNetCore.Authentication;
@@ -35,11 +40,6 @@ using Skoruba.IdentityServer4.STS.Identity.Configuration.ApplicationParts;
 using Skoruba.IdentityServer4.STS.Identity.Configuration.Constants;
 using Skoruba.IdentityServer4.STS.Identity.Configuration.Interfaces;
 using Skoruba.IdentityServer4.STS.Identity.Helpers.Localization;
-using Skoruba.IdentityServer4.STS.Identity.Services.Captcha;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
 
 namespace Skoruba.IdentityServer4.STS.Identity.Helpers
 {
@@ -299,8 +299,6 @@ namespace Skoruba.IdentityServer4.STS.Identity.Helpers
                 .AddEntityFrameworkStores<TIdentityDbContext>()
                 .AddDefaultTokenProviders();
 
-            SetCaptchaConfiguration(services, configuration);
-
             services.Configure<CookiePolicyOptions>(options =>
             {
                 options.MinimumSameSitePolicy = SameSiteMode.Unspecified;
@@ -346,25 +344,6 @@ namespace Skoruba.IdentityServer4.STS.Identity.Helpers
         }
 
         /// <summary>
-        /// Set configuration for captcha
-        /// </summary>
-        /// <param name="configuration"></param>
-        /// <returns></returns>
-        private static void SetCaptchaConfiguration(IServiceCollection services, IConfiguration configuration)
-        {
-            var captchaConfiguration = configuration.GetSection(nameof(CaptchaConfiguration)).Get<CaptchaConfiguration>();
-
-            if (captchaConfiguration?.Provider == "GoogleReCaptchaV2")
-            {
-                services.AddTransient<ICaptchaService, GoogleReCaptcha>();
-            }
-            else
-            {
-                services.AddTransient<ICaptchaService, LocalCaptcha>();
-            }
-        }
-
-        /// <summary>
         /// Get configuration for registration
         /// </summary>
         /// <param name="configuration"></param>
@@ -399,7 +378,22 @@ namespace Skoruba.IdentityServer4.STS.Identity.Helpers
         {
             var configurationSection = configuration.GetSection(nameof(IdentityServerOptions));
 
-            var builder = services.AddIdentityServer(options => configurationSection.Bind(options))
+            // REMOVE THIS BLOCK - don't add authentication here again
+            // services.AddAuthentication()
+            //     .AddCookie(IdentityConstants.ApplicationScheme, options => {...})
+            //     .AddCookie(IdentityConstants.ExternalScheme, options => {...});
+
+            var builder = services.AddIdentityServer(options => {
+                configurationSection.Bind(options);
+                options.EmitStaticAudienceClaim = true;
+                options.Authentication = new AuthenticationOptions
+                {
+                    CookieLifetime = TimeSpan.FromHours(1),
+                    CookieSlidingExpiration = true,
+                    // Add this line to use a different authentication scheme
+                    CookieAuthenticationScheme = IdentityServerConstants.DefaultCookieAuthenticationScheme
+                };
+            })
                 .AddConfigurationStore<TConfigurationDbContext>()
                 .AddOperationalStore<TPersistedGrantDbContext>()
                 .AddAspNetIdentity<TUserIdentity>();
@@ -441,6 +435,15 @@ namespace Skoruba.IdentityServer4.STS.Identity.Helpers
                     NameClaimType = "name",
                     RoleClaimType = "role"
                 };
+                // Add .NET 8 security headers
+                options.MapInboundClaims = true;
+                options.UseTokenLifetime = true;
+                
+                // Configure cookies for better security
+                options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.CorrelationCookie.SameSite = SameSiteMode.None;
+                options.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.NonceCookie.SameSite = SameSiteMode.None;
             })
             .AddGoogle(options =>
             {
@@ -448,6 +451,10 @@ namespace Skoruba.IdentityServer4.STS.Identity.Helpers
                 options.ClientId = externalProviderConfiguration.GoogleClientId;
                 options.ClientSecret = externalProviderConfiguration.GoogleClientSecret;
                 options.CallbackPath = externalProviderConfiguration.GoogleCallBackPath;
+                
+                // Configure cookies for better security
+                options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.CorrelationCookie.SameSite = SameSiteMode.None;
             });
 
             return authenticationBuilder;
@@ -478,69 +485,56 @@ namespace Skoruba.IdentityServer4.STS.Identity.Helpers
             });
         }
 
-        public static void AddIdSHealthChecks<TConfigurationDbContext, TPersistedGrantDbContext, TIdentityDbContext, TDataProtectionDbContext>(this IServiceCollection services, IConfiguration configuration)
+        public static void AddIdSHealthChecks<TConfigurationDbContext, TPersistedGrantDbContext, TIdentityDbContext, TDataProtectionDbContext, TUserIdentity>(this IServiceCollection services, IConfiguration configuration)
             where TConfigurationDbContext : DbContext, IAdminConfigurationDbContext
             where TPersistedGrantDbContext : DbContext, IAdminPersistedGrantDbContext
             where TIdentityDbContext : DbContext
             where TDataProtectionDbContext : DbContext, IDataProtectionKeyContext
+            where TUserIdentity : class
         {
+            // Add basic health checks for all DbContexts
+            var healthChecksBuilder = services.AddHealthChecks()
+                .AddDbContextCheck<TConfigurationDbContext>("ConfigurationDb")
+                .AddDbContextCheck<TPersistedGrantDbContext>("PersistentGrantsDb")
+                .AddDbContextCheck<TIdentityDbContext>("IdentityDb")
+                .AddDbContextCheck<TDataProtectionDbContext>("DataProtectionDb");
+
+            // Add database-specific health checks based on provider
+            var databaseProvider = configuration.GetSection(nameof(DatabaseProviderConfiguration)).Get<DatabaseProviderConfiguration>();
             var configurationDbConnectionString = configuration.GetConnectionString(ConfigurationConsts.ConfigurationDbConnectionStringKey);
             var persistedGrantsDbConnectionString = configuration.GetConnectionString(ConfigurationConsts.PersistedGrantDbConnectionStringKey);
             var identityDbConnectionString = configuration.GetConnectionString(ConfigurationConsts.IdentityDbConnectionStringKey);
             var dataProtectionDbConnectionString = configuration.GetConnectionString(ConfigurationConsts.DataProtectionDbConnectionStringKey);
 
-            var healthChecksBuilder = services.AddHealthChecks()
-                .AddDbContextCheck<TConfigurationDbContext>("ConfigurationDbContext")
-                .AddDbContextCheck<TPersistedGrantDbContext>("PersistedGrantsDbContext")
-                .AddDbContextCheck<TIdentityDbContext>("IdentityDbContext")
-                .AddDbContextCheck<TDataProtectionDbContext>("DataProtectionDbContext");
-
-            var serviceProvider = services.BuildServiceProvider();
-            var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
-            using (var scope = scopeFactory.CreateScope())
+            switch (databaseProvider.ProviderType)
             {
-                var configurationTableName = DbContextHelpers.GetEntityTable<TConfigurationDbContext>(scope.ServiceProvider);
-                var persistedGrantTableName = DbContextHelpers.GetEntityTable<TPersistedGrantDbContext>(scope.ServiceProvider);
-                var identityTableName = DbContextHelpers.GetEntityTable<TIdentityDbContext>(scope.ServiceProvider);
-                var dataProtectionTableName = DbContextHelpers.GetEntityTable<TDataProtectionDbContext>(scope.ServiceProvider);
-
-                var databaseProvider = configuration.GetSection(nameof(DatabaseProviderConfiguration)).Get<DatabaseProviderConfiguration>();
-                switch (databaseProvider.ProviderType)
-                {
-                    case DatabaseProviderType.SqlServer:
-                        healthChecksBuilder
-                            .AddSqlServer(configurationDbConnectionString, name: "ConfigurationDb",
-                                healthQuery: $"SELECT TOP 1 * FROM dbo.[{configurationTableName}]")
-                            .AddSqlServer(persistedGrantsDbConnectionString, name: "PersistentGrantsDb",
-                                healthQuery: $"SELECT TOP 1 * FROM dbo.[{persistedGrantTableName}]")
-                            .AddSqlServer(identityDbConnectionString, name: "IdentityDb",
-                                healthQuery: $"SELECT TOP 1 * FROM dbo.[{identityTableName}]")
-                            .AddSqlServer(dataProtectionDbConnectionString, name: "DataProtectionDb",
-                                healthQuery: $"SELECT TOP 1 * FROM dbo.[{dataProtectionTableName}]");
-
-                        break;
-                    case DatabaseProviderType.PostgreSQL:
-                        healthChecksBuilder
-                            .AddNpgSql(configurationDbConnectionString, name: "ConfigurationDb",
-                                healthQuery: $"SELECT * FROM \"{configurationTableName}\" LIMIT 1")
-                            .AddNpgSql(persistedGrantsDbConnectionString, name: "PersistentGrantsDb",
-                                healthQuery: $"SELECT * FROM \"{persistedGrantTableName}\" LIMIT 1")
-                            .AddNpgSql(identityDbConnectionString, name: "IdentityDb",
-                                healthQuery: $"SELECT * FROM \"{identityTableName}\" LIMIT 1")
-                            .AddNpgSql(dataProtectionDbConnectionString, name: "DataProtectionDb",
-                                healthQuery: $"SELECT * FROM \"{dataProtectionTableName}\"  LIMIT 1");
-                        break;
-                    case DatabaseProviderType.MySql:
-                        healthChecksBuilder
-                            .AddMySql(configurationDbConnectionString, name: "ConfigurationDb")
-                            .AddMySql(persistedGrantsDbConnectionString, name: "PersistentGrantsDb")
-                            .AddMySql(identityDbConnectionString, name: "IdentityDb")
-                            .AddMySql(dataProtectionDbConnectionString, name: "DataProtectionDb");
-                        break;
-                    default:
-                        throw new NotImplementedException($"Health checks not defined for database provider {databaseProvider.ProviderType}");
-                }
+                case DatabaseProviderType.SqlServer:
+                    healthChecksBuilder
+                        .AddSqlServer(configurationDbConnectionString, name: "ConfigurationDb_SqlServer")
+                        .AddSqlServer(persistedGrantsDbConnectionString, name: "PersistentGrantsDb_SqlServer")
+                        .AddSqlServer(identityDbConnectionString, name: "IdentityDb_SqlServer")
+                        .AddSqlServer(dataProtectionDbConnectionString, name: "DataProtectionDb_SqlServer");
+                    break;
+                case DatabaseProviderType.PostgreSQL:
+                    healthChecksBuilder
+                        .AddNpgSql(configurationDbConnectionString, name: "ConfigurationDb_Postgres")
+                        .AddNpgSql(persistedGrantsDbConnectionString, name: "PersistentGrantsDb_Postgres")
+                        .AddNpgSql(identityDbConnectionString, name: "IdentityDb_Postgres")
+                        .AddNpgSql(dataProtectionDbConnectionString, name: "DataProtectionDb_Postgres");
+                    break;
+                case DatabaseProviderType.MySql:
+                    healthChecksBuilder
+                        .AddMySql(configurationDbConnectionString, name: "ConfigurationDb_MySql")
+                        .AddMySql(persistedGrantsDbConnectionString, name: "PersistentGrantsDb_MySql")
+                        .AddMySql(identityDbConnectionString, name: "IdentityDb_MySql")
+                        .AddMySql(dataProtectionDbConnectionString, name: "DataProtectionDb_MySql");
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(databaseProvider.ProviderType), $"The value needs to be one of {string.Join(", ", Enum.GetNames(typeof(DatabaseProviderType)))}.");
             }
+
+            // Add basic IdentityServer health check
+            healthChecksBuilder.AddCheck<IdentityServerHealthCheck>("IdentityServer");
         }
     }
 }

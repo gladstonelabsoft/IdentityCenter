@@ -11,8 +11,15 @@ namespace Skoruba.IdentityServer4.Admin.BusinessLogic.Mappers
     {
         static ClientMappers()
         {
-            Mapper = new MapperConfiguration(cfg => cfg.AddProfile<ClientMapperProfile>())
-                .CreateMapper();
+            var config = new MapperConfiguration(cfg => {
+                cfg.AddProfile<ClientMapperProfile>();
+                cfg.AllowNullCollections = true;
+                cfg.AllowNullDestinationValues = true;
+                cfg.DisableConstructorMapping();
+                cfg.ShouldMapProperty = p => p.GetMethod != null && (p.GetMethod.IsPublic || p.GetMethod.IsPrivate);
+                cfg.Advanced.AllowAdditiveTypeMapCreation = true;
+            });
+            Mapper = config.CreateMapper();
         }
 
         internal static IMapper Mapper { get; }

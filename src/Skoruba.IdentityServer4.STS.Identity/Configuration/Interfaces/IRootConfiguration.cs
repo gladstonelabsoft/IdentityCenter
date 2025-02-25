@@ -7,7 +7,5 @@ namespace Skoruba.IdentityServer4.STS.Identity.Configuration.Interfaces
         AdminConfiguration AdminConfiguration { get; }
 
         RegisterConfiguration RegisterConfiguration { get; }
-
-        CaptchaConfiguration CaptchaConfiguration { get; }
     }
 }

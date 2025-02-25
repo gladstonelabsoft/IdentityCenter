@@ -40,26 +40,44 @@ namespace Skoruba.IdentityServer4.Admin.EntityFramework.Configuration.SqlServer
             var migrationsAssembly = typeof(DatabaseExtensions).GetTypeInfo().Assembly.GetName().Name;
 
             // Config DB for identity
-            services.AddDbContext<TIdentityDbContext>(options => options.UseSqlServer(connectionStrings.IdentityDbConnection, sql => sql.MigrationsAssembly(databaseMigrations.IdentityDbMigrationsAssembly ?? migrationsAssembly)));
+            services.AddDbContext<TIdentityDbContext>(options => options.UseSqlServer(connectionStrings.IdentityDbConnection, sql => {
+                sql.MigrationsAssembly(databaseMigrations.IdentityDbMigrationsAssembly ?? migrationsAssembly);
+                sql.EnableRetryOnFailure(maxRetryCount: 3);
+            }));
 
             // Config DB from existing connection
-            services.AddConfigurationDbContext<TConfigurationDbContext>(options => options.ConfigureDbContext = b => b.UseSqlServer(connectionStrings.ConfigurationDbConnection, sql => sql.MigrationsAssembly(databaseMigrations.ConfigurationDbMigrationsAssembly ?? migrationsAssembly)));
+            services.AddConfigurationDbContext<TConfigurationDbContext>(options => options.ConfigureDbContext = b => b.UseSqlServer(connectionStrings.ConfigurationDbConnection, sql => {
+                sql.MigrationsAssembly(databaseMigrations.ConfigurationDbMigrationsAssembly ?? migrationsAssembly);
+                sql.EnableRetryOnFailure(maxRetryCount: 3);
+            }));
 
             // Operational DB from existing connection
-            services.AddOperationalDbContext<TPersistedGrantDbContext>(options => options.ConfigureDbContext = b => b.UseSqlServer(connectionStrings.PersistedGrantDbConnection, sql => sql.MigrationsAssembly(databaseMigrations.PersistedGrantDbMigrationsAssembly ?? migrationsAssembly)));
+            services.AddOperationalDbContext<TPersistedGrantDbContext>(options => options.ConfigureDbContext = b => b.UseSqlServer(connectionStrings.PersistedGrantDbConnection, sql => {
+                sql.MigrationsAssembly(databaseMigrations.PersistedGrantDbMigrationsAssembly ?? migrationsAssembly);
+                sql.EnableRetryOnFailure(maxRetryCount: 3);
+            }));
 
             // Log DB from existing connection
             services.AddDbContext<TLogDbContext>(options => options.UseSqlServer(connectionStrings.AdminLogDbConnection,
-                optionsSql => optionsSql.MigrationsAssembly(databaseMigrations.AdminLogDbMigrationsAssembly ?? migrationsAssembly)));
+                optionsSql => {
+                    optionsSql.MigrationsAssembly(databaseMigrations.AdminLogDbMigrationsAssembly ?? migrationsAssembly);
+                    optionsSql.EnableRetryOnFailure(maxRetryCount: 3);
+                }));
 
             // Audit logging connection
             services.AddDbContext<TAuditLoggingDbContext>(options => options.UseSqlServer(connectionStrings.AdminAuditLogDbConnection,
-                optionsSql => optionsSql.MigrationsAssembly(databaseMigrations.AdminAuditLogDbMigrationsAssembly ?? migrationsAssembly)));
+                optionsSql => {
+                    optionsSql.MigrationsAssembly(databaseMigrations.AdminAuditLogDbMigrationsAssembly ?? migrationsAssembly);
+                    optionsSql.EnableRetryOnFailure(maxRetryCount: 3);
+                }));
 
             // DataProtectionKey DB from existing connection
             if (!string.IsNullOrEmpty(connectionStrings.DataProtectionDbConnection))
                 services.AddDbContext<TDataProtectionDbContext>(options => options.UseSqlServer(connectionStrings.DataProtectionDbConnection,
-                    optionsSql => optionsSql.MigrationsAssembly(databaseMigrations.DataProtectionDbMigrationsAssembly ?? migrationsAssembly)));
+                    optionsSql => {
+                        optionsSql.MigrationsAssembly(databaseMigrations.DataProtectionDbMigrationsAssembly ?? migrationsAssembly);
+                        optionsSql.EnableRetryOnFailure(maxRetryCount: 3);
+                    }));
         }
 
         /// <summary>
@@ -87,16 +105,28 @@ namespace Skoruba.IdentityServer4.Admin.EntityFramework.Configuration.SqlServer
             var migrationsAssembly = typeof(DatabaseExtensions).GetTypeInfo().Assembly.GetName().Name;
 
             // Config DB for identity
-            services.AddDbContext<TIdentityDbContext>(options => options.UseSqlServer(identityConnectionString, sql => sql.MigrationsAssembly(migrationsAssembly)));
+            services.AddDbContext<TIdentityDbContext>(options => options.UseSqlServer(identityConnectionString, sql => {
+                sql.MigrationsAssembly(migrationsAssembly);
+                sql.UseCompatibilityLevel(120); // For SQL Server 2014 and below support
+            }));
 
             // Config DB from existing connection
-            services.AddConfigurationDbContext<TConfigurationDbContext>(options => options.ConfigureDbContext = b => b.UseSqlServer(configurationConnectionString, sql => sql.MigrationsAssembly(migrationsAssembly)));
+            services.AddConfigurationDbContext<TConfigurationDbContext>(options => options.ConfigureDbContext = b => b.UseSqlServer(configurationConnectionString, sql => {
+                sql.MigrationsAssembly(migrationsAssembly);
+                sql.UseCompatibilityLevel(120); // For SQL Server 2014 and below support
+            }));
 
             // Operational DB from existing connection
-            services.AddOperationalDbContext<TPersistedGrantDbContext>(options => options.ConfigureDbContext = b => b.UseSqlServer(persistedGrantConnectionString, sql => sql.MigrationsAssembly(migrationsAssembly)));
+            services.AddOperationalDbContext<TPersistedGrantDbContext>(options => options.ConfigureDbContext = b => b.UseSqlServer(persistedGrantConnectionString, sql => {
+                sql.MigrationsAssembly(migrationsAssembly);
+                sql.UseCompatibilityLevel(120); // For SQL Server 2014 and below support
+            }));
 
             // DataProtectionKey DB from existing connection
-            services.AddDbContext<TDataProtectionDbContext>(options => options.UseSqlServer(dataProtectionConnectionString, sql => sql.MigrationsAssembly(migrationsAssembly)));
+            services.AddDbContext<TDataProtectionDbContext>(options => options.UseSqlServer(dataProtectionConnectionString, sql => {
+                sql.MigrationsAssembly(migrationsAssembly);
+                sql.UseCompatibilityLevel(120); // For SQL Server 2014 and below support
+            }));
         }
     }
 }

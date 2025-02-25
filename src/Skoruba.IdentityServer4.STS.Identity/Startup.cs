@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Authentication;
+using IdentityServer4;
 using Skoruba.IdentityServer4.Admin.EntityFramework.Shared.DbContexts;
 using Skoruba.IdentityServer4.Admin.EntityFramework.Shared.Entities.Identity;
 using Skoruba.IdentityServer4.Shared.Configuration.Helpers;
@@ -28,12 +30,12 @@ namespace Skoruba.IdentityServer4.STS.Identity
             Environment = environment;
         }
 
-        public void ConfigureServices(IServiceCollection services)
+        public virtual void ConfigureServices(IServiceCollection services)
         {
             var environment = Configuration["AspNet_Environment"] ?? string.Empty;
-            LogConfiguration.AddSerilogLabsoftApplicationLog(services,
-                configuration: Configuration,
-                environment: environment);
+            //LogConfiguration.AddSerilogLabsoftApplicationLog(services,
+            //    configuration: Configuration,
+            //    environment: environment);
 
             var rootConfiguration = CreateRootConfiguration();
             services.AddSingleton(rootConfiguration);
@@ -50,7 +52,7 @@ namespace Skoruba.IdentityServer4.STS.Identity
 
             RegisterAuthorization(services);
 
-            services.AddIdSHealthChecks<IdentityServerConfigurationDbContext, IdentityServerPersistedGrantDbContext, AdminIdentityDbContext, IdentityServerDataProtectionDbContext>(Configuration);
+            services.AddIdSHealthChecks<IdentityServerConfigurationDbContext, IdentityServerPersistedGrantDbContext, AdminIdentityDbContext, IdentityServerDataProtectionDbContext, UserIdentity>(Configuration);
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -73,6 +75,7 @@ namespace Skoruba.IdentityServer4.STS.Identity
             app.UseSecurityHeaders(Configuration);
             app.UseMvcLocalizationServices();
             app.UseRouting();
+            app.UseIdentityServer();
             app.UseAuthorization();
             app.UseEndpoints(endpoint =>
             {
@@ -96,7 +99,17 @@ namespace Skoruba.IdentityServer4.STS.Identity
 
         public virtual void RegisterAuthentication(IServiceCollection services)
         {
+            // Configure authentication options for .NET 8 compatibility
+            services.Configure<AuthenticationOptions>(options =>
+            {
+                options.DefaultAuthenticateScheme = IdentityServerConstants.DefaultCookieAuthenticationScheme;
+                options.DefaultChallengeScheme = IdentityServerConstants.DefaultCookieAuthenticationScheme;
+            });
+
+            // Add authentication services first
             services.AddAuthenticationServices<AdminIdentityDbContext, UserIdentity, UserIdentityRole>(Configuration);
+            
+            // Then add IdentityServer
             services.AddIdentityServer<IdentityServerConfigurationDbContext, IdentityServerPersistedGrantDbContext, UserIdentity>(Configuration);
         }
 
@@ -108,6 +121,7 @@ namespace Skoruba.IdentityServer4.STS.Identity
 
         public virtual void UseAuthentication(IApplicationBuilder app)
         {
+            // Only use IdentityServer middleware which includes authentication
             app.UseIdentityServer();
         }
 
@@ -126,7 +140,6 @@ namespace Skoruba.IdentityServer4.STS.Identity
             var rootConfiguration = new RootConfiguration();
             Configuration.GetSection(ConfigurationConsts.AdminConfigurationKey).Bind(rootConfiguration.AdminConfiguration);
             Configuration.GetSection(ConfigurationConsts.RegisterConfigurationKey).Bind(rootConfiguration.RegisterConfiguration);
-            Configuration.GetSection(ConfigurationConsts.CaptchaConfigurationKey).Bind(rootConfiguration.CaptchaConfiguration);
             return rootConfiguration;
         }
     }

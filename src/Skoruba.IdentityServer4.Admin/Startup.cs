@@ -34,9 +34,9 @@ namespace Skoruba.IdentityServer4.Admin
         public void ConfigureServices(IServiceCollection services)
         {
             var environment = Configuration["AspNet_Environment"] ?? string.Empty;
-            LogConfiguration.AddSerilogLabsoftApplicationLog(services,
-                configuration: Configuration,
-                environment: environment);
+            //LogConfiguration.AddSerilogLabsoftApplicationLog(services,
+            //    configuration: Configuration,
+            //    environment: environment);
 
             // Adds the IdentityServer4 Admin UI with custom options.
             services.AddIdentityServer4AdminUI<AdminIdentityDbContext, IdentityServerConfigurationDbContext, IdentityServerPersistedGrantDbContext,

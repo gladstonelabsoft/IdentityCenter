@@ -3,10 +3,13 @@
 
 // Modified by Jan Škoruba
 
+using System.Linq;
+using System.Collections.Generic;
 using AutoMapper;
 using IdentityServer4.EntityFramework.Entities;
 using Skoruba.IdentityServer4.Admin.BusinessLogic.Dtos.Configuration;
 using Skoruba.IdentityServer4.Admin.BusinessLogic.Mappers.Converters;
+using Skoruba.IdentityServer4.Admin.BusinessLogic.Mappers.Resolvers;
 using Skoruba.IdentityServer4.Admin.BusinessLogic.Shared.Dtos.Common;
 using Skoruba.IdentityServer4.Admin.EntityFramework.Extensions.Common;
 
@@ -17,34 +20,70 @@ namespace Skoruba.IdentityServer4.Admin.BusinessLogic.Mappers
         public ClientMapperProfile()
         {
             // entity to model
-            CreateMap<Client, ClientDto>(MemberList.Destination)
+            CreateMap<Client, ClientDto>()
                 .ForMember(dest => dest.ProtocolType, opt => opt.Condition(srs => srs != null))
                 .ForMember(x => x.AllowedIdentityTokenSigningAlgorithms, opts => opts.ConvertUsing(AllowedSigningAlgorithmsConverter.Converter, x => x.AllowedIdentityTokenSigningAlgorithms))
-                .ReverseMap()
-                .ForMember(x => x.AllowedIdentityTokenSigningAlgorithms, opts => opts.ConvertUsing(AllowedSigningAlgorithmsConverter.Converter, x => x.AllowedIdentityTokenSigningAlgorithms));
+                .BeforeMap((src, dest) => {
+                    src.PostLogoutRedirectUris ??= new List<ClientPostLogoutRedirectUri>();
+                    src.RedirectUris ??= new List<ClientRedirectUri>();
+                    src.AllowedScopes ??= new List<ClientScope>();
+                    src.AllowedGrantTypes ??= new List<ClientGrantType>();
+                    src.IdentityProviderRestrictions ??= new List<ClientIdPRestriction>();
+                    src.AllowedCorsOrigins ??= new List<ClientCorsOrigin>();
+                })
+                .ForMember(x => x.PostLogoutRedirectUris, opt => opt.MapFrom(src => src.PostLogoutRedirectUris.Select(x => x.PostLogoutRedirectUri).ToList()))
+                .ForMember(x => x.RedirectUris, opt => opt.MapFrom(src => src.RedirectUris.Select(x => x.RedirectUri).ToList()))
+                .ForMember(x => x.AllowedScopes, opt => opt.MapFrom(src => src.AllowedScopes.Select(x => x.Scope).ToList()))
+                .ForMember(x => x.AllowedGrantTypes, opt => opt.MapFrom(src => src.AllowedGrantTypes.Select(x => x.GrantType).ToList()))
+                .ForMember(x => x.IdentityProviderRestrictions, opt => opt.MapFrom(src => src.IdentityProviderRestrictions.Select(x => x.Provider).ToList()))
+                .ForMember(x => x.AllowedCorsOrigins, opt => opt.MapFrom(src => src.AllowedCorsOrigins.Select(x => x.Origin).ToList()));
+
+            CreateMap<ClientDto, Client>()
+                .ForMember(x => x.AllowedIdentityTokenSigningAlgorithms, opts => opts.ConvertUsing(AllowedSigningAlgorithmsConverter.Converter, x => x.AllowedIdentityTokenSigningAlgorithms))
+                .BeforeMap((src, dest) => {
+                    src.PostLogoutRedirectUris ??= new List<string>();
+                    src.RedirectUris ??= new List<string>();
+                    src.AllowedScopes ??= new List<string>();
+                    src.AllowedGrantTypes ??= new List<string>();
+                    src.IdentityProviderRestrictions ??= new List<string>();
+                    src.AllowedCorsOrigins ??= new List<string>();
+                })
+                .ForMember(x => x.PostLogoutRedirectUris, opt => opt.MapFrom(src => src.PostLogoutRedirectUris.Select(x => new ClientPostLogoutRedirectUri { PostLogoutRedirectUri = x }).ToList()))
+                .ForMember(x => x.RedirectUris, opt => opt.MapFrom(src => src.RedirectUris.Select(x => new ClientRedirectUri { RedirectUri = x }).ToList()))
+                .ForMember(x => x.AllowedScopes, opt => opt.MapFrom(src => src.AllowedScopes.Select(x => new ClientScope { Scope = x }).ToList()))
+                .ForMember(x => x.AllowedGrantTypes, opt => opt.MapFrom(src => src.AllowedGrantTypes.Select(x => new ClientGrantType { GrantType = x }).ToList()))
+                .ForMember(x => x.IdentityProviderRestrictions, opt => opt.MapFrom(src => src.IdentityProviderRestrictions.Select(x => new ClientIdPRestriction { Provider = x }).ToList()))
+                .ForMember(x => x.AllowedCorsOrigins, opt => opt.MapFrom(src => src.AllowedCorsOrigins.Select(x => new ClientCorsOrigin { Origin = x }).ToList()));
+
+            CreateMap<ClientProperty, ClientPropertyDto>().ReverseMap();
+            CreateMap<ClientClaim, ClientClaimDto>().ReverseMap();
 
             CreateMap<SelectItem, SelectItemDto>(MemberList.Destination)
                 .ReverseMap();
 
             CreateMap<ClientGrantType, string>()
-                .ConstructUsing(src => src.GrantType)
-                .ReverseMap()
-                .ForMember(dest => dest.GrantType, opt => opt.MapFrom(src => src));
+                .ConvertUsing(src => src.GrantType);
+            CreateMap<string, ClientGrantType>()
+                .ForMember(dest => dest.GrantType, opt => opt.MapFrom(src => src))
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
 
             CreateMap<ClientRedirectUri, string>()
-                .ConstructUsing(src => src.RedirectUri)
-                .ReverseMap()
-                .ForMember(dest => dest.RedirectUri, opt => opt.MapFrom(src => src));
+                .ConvertUsing(src => src.RedirectUri);
+            CreateMap<string, ClientRedirectUri>()
+                .ForMember(dest => dest.RedirectUri, opt => opt.MapFrom(src => src))
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
 
             CreateMap<ClientPostLogoutRedirectUri, string>()
-                .ConstructUsing(src => src.PostLogoutRedirectUri)
-                .ReverseMap()
-                .ForMember(dest => dest.PostLogoutRedirectUri, opt => opt.MapFrom(src => src));
+                .ConvertUsing(src => src.PostLogoutRedirectUri);
+            CreateMap<string, ClientPostLogoutRedirectUri>()
+                .ForMember(dest => dest.PostLogoutRedirectUri, opt => opt.MapFrom(src => src))
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
 
             CreateMap<ClientScope, string>()
-                .ConstructUsing(src => src.Scope)
-                .ReverseMap()
-                .ForMember(dest => dest.Scope, opt => opt.MapFrom(src => src));
+                .ConvertUsing(src => src.Scope);
+            CreateMap<string, ClientScope>()
+                .ForMember(dest => dest.Scope, opt => opt.MapFrom(src => src))
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
 
             CreateMap<ClientSecret, ClientSecretDto>(MemberList.Destination)
                 .ForMember(dest => dest.Type, opt => opt.Condition(srs => srs != null))
@@ -55,14 +94,16 @@ namespace Skoruba.IdentityServer4.Admin.BusinessLogic.Mappers
                 .ReverseMap();
 
             CreateMap<ClientIdPRestriction, string>()
-                .ConstructUsing(src => src.Provider)
-                .ReverseMap()
-                .ForMember(dest => dest.Provider, opt => opt.MapFrom(src => src));
+                .ConvertUsing(src => src.Provider);
+            CreateMap<string, ClientIdPRestriction>()
+                .ForMember(dest => dest.Provider, opt => opt.MapFrom(src => src))
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
 
             CreateMap<ClientCorsOrigin, string>()
-                .ConstructUsing(src => src.Origin)
-                .ReverseMap()
-                .ForMember(dest => dest.Origin, opt => opt.MapFrom(src => src));
+                .ConvertUsing(src => src.Origin);
+            CreateMap<string, ClientCorsOrigin>()
+                .ForMember(dest => dest.Origin, opt => opt.MapFrom(src => src))
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
 
             CreateMap<ClientProperty, ClientPropertyDto>(MemberList.Destination)
                 .ReverseMap();

@@ -123,12 +123,6 @@
   <data name="Request" xml:space="preserve">
     <value>ID solicitado:</value>
   </data>
-  <data name="SorryWeWereUnableToPerformTheRequestedAction" xml:space="preserve">
-    <value>Desculpe, não foi possivel realizar a ação solicitada</value>
-  </data>
-  <data name="ThereWasAProblem" xml:space="preserve">
-    <value>Houve um problema</value>
-  </data>
   <data name="Title" xml:space="preserve">
     <value>Erro</value>
   </data>

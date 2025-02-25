@@ -1,25 +1,16 @@
-﻿using AutoFixture;
+﻿using System.Net;
+using System.Threading.Tasks;
 using FluentAssertions;
-using Moq;
-using Skoruba.IdentityServer4.Admin.BusinessLogic.Dtos.Log;
-using Skoruba.IdentityServer4.Admin.BusinessLogic.Services.Interfaces;
 using Skoruba.IdentityServer4.Admin.IntegrationTests.Tests.Base;
 using Skoruba.IdentityServer4.Admin.UI.Configuration.Constants;
-using System.Net;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace Skoruba.IdentityServer4.Admin.IntegrationTests.Tests
 {
-    public class LogControllerTests : BaseClassFixture
+	public class LogControllerTests : BaseClassFixture
     {
-        private readonly Mock<IAuditLogService> _auditLogService;
-        private readonly Fixture _fixture;
         public LogControllerTests(TestFixture fixture) : base(fixture)
         {
-            _auditLogService = new Mock<IAuditLogService>();
-            _fixture = new Fixture();
-
         }
 
         [Fact]
@@ -70,36 +61,14 @@ namespace Skoruba.IdentityServer4.Admin.IntegrationTests.Tests
         [Fact]
         public async Task ReturnSuccessInAuditLogWithAdminRole()
         {
-           SetupAdminClaimsViaHeaders();
+            SetupAdminClaimsViaHeaders();
 
             // Act
             var response = await Client.GetAsync("/log/auditlog");
 
             // Assert
             response.EnsureSuccessStatusCode();
-            response.StatusCode.Should().Be(HttpStatusCode.OK);   
-            
-        }
-
-        [Fact]
-        public async Task GetAsync_ShouldReturnLogs()
-        {
-            // Arrange
-            var logs = _fixture.Create<AuditLogsDto>();
-            var filters = _fixture.Create<AuditLogFilterDto>();
-
-            _auditLogService
-                .Setup(x => x.GetAsync(It.IsAny<AuditLogFilterDto>()))
-                .Returns(Task.FromResult(logs));
-
-            var auditLogService = _auditLogService.Object;
-
-            // Act
-            var result = await auditLogService.GetAsync(filters);
-
-            // Assert
-            Assert.NotNull(result);
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
         }
     }
 }
-

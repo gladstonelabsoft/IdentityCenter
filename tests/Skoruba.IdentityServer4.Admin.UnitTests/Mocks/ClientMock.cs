@@ -60,24 +60,24 @@ namespace Skoruba.IdentityServer4.Admin.UnitTests.Mocks
                 .RuleFor(o => o.AllowOfflineAccess, f => f.Random.Bool())
                 .RuleFor(o => o.AllowPlainTextPkce, f => f.Random.Bool())
                 .RuleFor(o => o.AllowRememberConsent, f => f.Random.Bool())
-                .RuleFor(o => o.AllowedCorsOrigins, f => GetClientCorsOriginFaker().Generate(f.Random.Number(10)))
-                .RuleFor(o => o.AllowedGrantTypes, f => ClientGrantTypesFaker().Generate(1))
-                .RuleFor(o => o.AllowedScopes, f => ClientScopesFaker().Generate(f.Random.Number(1, 3)))
+                .RuleFor(o => o.AllowedCorsOrigins, f => GetClientCorsOriginFaker().Generate(f.Random.Number(10)).ToList())
+                .RuleFor(o => o.AllowedGrantTypes, f => ClientGrantTypesFaker().Generate(1).ToList())
+                .RuleFor(o => o.AllowedScopes, f => ClientScopesFaker().Generate(f.Random.Number(1, 3)).ToList())
                 .RuleFor(o => o.AlwaysIncludeUserClaimsInIdToken, f => f.Random.Bool())
                 .RuleFor(o => o.Enabled, f => f.Random.Bool())
                 .RuleFor(o => o.ProtocolType, f => f.PickRandom(ClientConsts.GetProtocolTypes().Select(x => x.Id)))
                 .RuleFor(o => o.ClientSecrets,
                     f => generateSecrets
-                        ? ClientSecretFaker(0).Generate(f.Random.Number(10))
-                        : null) //Client Secrets are managed with separate method
+                        ? ClientSecretFaker(0).Generate(f.Random.Number(10)).ToList()
+                        : new List<ClientSecret>()) //Client Secrets are managed with separate method
                 .RuleFor(o => o.RequireClientSecret, f => f.Random.Bool())
                 .RuleFor(o => o.Description, f => f.Random.Words(f.Random.Number(1, 7)))
                 .RuleFor(o => o.ClientUri, f => f.Internet.Url())
                 .RuleFor(o => o.RequireConsent, f => f.Random.Bool())
                 .RuleFor(o => o.RequirePkce, f => f.Random.Bool())
-                .RuleFor(o => o.RedirectUris, f => ClientRedirectUriFaker().Generate(f.Random.Number(10)))
+                .RuleFor(o => o.RedirectUris, f => ClientRedirectUriFaker().Generate(f.Random.Number(10)).ToList())
                 .RuleFor(o => o.PostLogoutRedirectUris,
-                    f => ClientPostLogoutRedirectUriFaker().Generate(f.Random.Number(10)))
+                    f => ClientPostLogoutRedirectUriFaker().Generate(f.Random.Number(10)).ToList())
                 .RuleFor(o => o.FrontChannelLogoutUri, f => f.Internet.Url())
                 .RuleFor(o => o.FrontChannelLogoutSessionRequired, f => f.Random.Bool())
                 .RuleFor(o => o.BackChannelLogoutUri, f => f.Internet.Url())
@@ -98,7 +98,7 @@ namespace Skoruba.IdentityServer4.Admin.UnitTests.Mocks
                     f => generateClaims
                         ? ClientClaimFaker(0).Generate(f.Random.Number(10))
                         : new List<ClientClaim>()) //Client Claims are managed with separate method
-                .RuleFor(o => o.IdentityProviderRestrictions, f => ClientIdPRescrictionFaker().Generate(1))
+                .RuleFor(o => o.IdentityProviderRestrictions, f => ClientIdPRescrictionFaker().Generate(1).ToList())
                 .RuleFor(o => o.Properties,
                     f => generateProperties
                         ? ClientPropertyFaker(0).Generate(f.Random.Number(10))

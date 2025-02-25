@@ -8,7 +8,6 @@
 @if (Model.EnableLocalLogin)
 {
     <main>
-            @await Html.PartialAsync("_CaptchaPreScript")
             <section class="labsoft-home-imageWrapper"></section>
             
             <img src="@UrlHelper.Content(RootConfiguration.AdminConfiguration.LabsoftLogoUri)"  class="labsoft-home-image-logo" alt="Labsoft logo">
@@ -46,23 +45,26 @@
                                 <span>@Localizer["Remember"]</span>
                             </aside>
                         }
-                        @await Html.PartialAsync("_CaptchaValidator")
                         <aside class="labsoft-login-agroup-buttons-access">
-                            <button class="labsoft-login-button-primary"  name="button" id="loginbtn" value="login">@Localizer["Login"]</button>
+                            <button class="labsoft-login-button-primary"  name="button" value="login">@Localizer["Login"]</button>
                             <a asp-action="ForgotPassword" asp-controller="Account" asp-route-requesterClient="@Model.RequesterClient" class="labsoft-login-button-secondary" value="forgot">@Localizer["Forgot"]</a>
                         </aside>
                         @if (!ViewData.ModelState.IsValid)
                         {
-                            <div class="alert alert-danger">
-                                @foreach (var error in ViewData.ModelState[""].Errors)
-                                {
-                                    @error.ErrorMessage<br/>
-                                }
+                            <div class="validation-summary-errors alert alert-danger">
+                                <ul>
+                                    @foreach (var modelStateVal in ViewData.ModelState.Values)
+                                    {
+                                        foreach (var error in modelStateVal.Errors)
+                                        {
+                                            <li>@error.ErrorMessage</li>
+                                        }
+                                    }
+                                </ul>
                             </div>
                         }
                 </fieldset>
                 </form>
-                @await Html.PartialAsync("_CaptchaPosScript")
                 <div class="labsoft-login-container-select-language">
                     @{
                         var returnUrl = string.IsNullOrEmpty(Context.Request.Path) ? "~/" : $"~{Context.Request.Path.Value}{Context.Request.QueryString}";

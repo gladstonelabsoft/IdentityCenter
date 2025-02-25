@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Net.Http;
+using System.Linq;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
-using Skoruba.IdentityServer4.STS.Identity.Configuration.Test;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Authentication;
+using Skoruba.IdentityServer4.STS.Identity.IntegrationTests.Configuration.Test;
 
 namespace Skoruba.IdentityServer4.STS.Identity.IntegrationTests.Tests.Base
 {
@@ -25,6 +28,15 @@ namespace Skoruba.IdentityServer4.STS.Identity.IntegrationTests.Tests.Base
 
                     configApp.AddJsonFile($"serilog.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
                     configApp.AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true, reloadOnChange: true);
+                })
+                .ConfigureServices(services =>
+                {
+                    // Clear existing authentication handlers
+                    var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IAuthenticationSchemeProvider));
+                    if (descriptor != null)
+                    {
+                        services.Remove(descriptor);
+                    }
                 })
                 .UseStartup<StartupTest>();
 

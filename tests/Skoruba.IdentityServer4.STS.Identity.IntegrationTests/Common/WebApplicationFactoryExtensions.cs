@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
-using Skoruba.IdentityServer4.STS.Identity.Configuration.Test;
+using Skoruba.IdentityServer4.STS.Identity.IntegrationTests.Configuration.Test;
 
 namespace Skoruba.IdentityServer4.STS.Identity.IntegrationTests.Common
 {
